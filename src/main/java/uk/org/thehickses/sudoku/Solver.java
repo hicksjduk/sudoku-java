@@ -10,7 +10,21 @@ public class Solver
             .toArray();
     private static final int emptySquare = 0;
     private static final int gridSize = permittedValues.length;
+    private static final Dimensions boxSize = calcBoxSize();
     private static final Box[] boxes = calcBoxes();
+
+    private static void validateStaticFields()
+    {
+        if (gridSize == 0)
+            throw new RuntimeException("Grid size is 0");
+        if (hasDuplicates(permittedValues))
+            throw new RuntimeException("Permitted values include duplicate(s)");
+        if (IntStream.of(permittedValues)
+                .anyMatch(i -> i == emptySquare))
+            throw new RuntimeException("Empty square value is also a permitted value");
+        if (boxSize.cols == gridSize)
+            throw new RuntimeException("Grid size is a prime number");
+    }
 
     static final Grid puzzle = Grid.with(8, 0, 0, 0, 0, 0, 0, 0, 0)
             .and(0, 0, 3, 6, 0, 0, 0, 0, 0)
@@ -42,19 +56,12 @@ public class Solver
     private static Dimensions calcBoxSize()
     {
         if (gridSize == 0)
-            throw new RuntimeException("Grid size is 0");
-        if (hasDuplicates(permittedValues))
-            throw new RuntimeException("Permitted values include duplicate(s)");
-        if (IntStream.of(permittedValues)
-                .anyMatch(i -> i == emptySquare))
-            throw new RuntimeException("Empty square value is also a permitted value");
+            return new Dimensions(0, 0);
         var squareRoot = Math.sqrt(gridSize);
-        var cols = IntStream.iterate((int) Math.ceil(squareRoot), i -> i + 1)
+        var cols = IntStream.rangeClosed((int) Math.ceil(squareRoot), gridSize)
                 .filter(i -> gridSize % i == 0)
                 .findFirst()
                 .getAsInt();
-        if (cols == gridSize)
-            throw new RuntimeException("Grid size is a prime number");
         return new Dimensions(gridSize / cols, cols);
     }
 
@@ -72,7 +79,6 @@ public class Solver
 
     private static Box[] calcBoxes()
     {
-        var boxSize = calcBoxSize();
         var boxTopRows = IntStream.iterate(0, i -> i < gridSize, i -> i + boxSize.rows);
         var boxLeftCols = IntStream.iterate(0, i -> i < gridSize, i -> i + boxSize.cols)
                 .toArray();
@@ -86,6 +92,7 @@ public class Solver
 
     public Stream<Grid> solve(Grid grid)
     {
+        validateStaticFields();
         return grid.validate()
                 .emptySquares()
                 .findFirst()
