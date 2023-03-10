@@ -8,7 +8,7 @@ public class Solver
 {
     public static final Solver defaultSolver = new Solver();
 
-    public static final Grid puzzle = defaultSolver.gridWith(8, 0, 0, 0, 0, 0, 0, 0, 0)
+    public static final Grid puzzle = Grid.with(8, 0, 0, 0, 0, 0, 0, 0, 0)
             .and(0, 0, 3, 6, 0, 0, 0, 0, 0)
             .and(0, 7, 0, 0, 9, 0, 2, 0, 0)
             .and(0, 5, 0, 0, 0, 7, 0, 0, 0)
@@ -64,7 +64,7 @@ public class Solver
 
     public Stream<Grid> solve(Grid grid)
     {
-        return grid.emptySquares()
+        return emptySquares(grid)
                 .findFirst()
                 .map(square -> solveAt(grid, square))
                 .orElse(Stream.of(grid));
@@ -72,32 +72,72 @@ public class Solver
 
     private Stream<Grid> solveAt(Grid grid, Square square)
     {
-        return grid.allowedValues(square)
+        return allowedValues(grid, square)
                 .boxed()
                 .flatMap(i -> solve(grid.setValueAt(square, i)));
     }
 
-    public Grid gridWith(int... row)
+    public IntStream allowedValues(Grid grid, Square square)
     {
-        return new Grid(new int[][] {}, structure).and(row);
+        var blockedValues = Stream
+                .of(rowValues(grid, square.row), colValues(grid, square.col),
+                        boxValues(grid, structure.boxContaining(square)))
+                .reduce(IntStream::concat)
+                .get()
+                .boxed()
+                .collect(Collectors.toSet());
+        return IntStream.of(structure.permittedValues)
+                .filter(i -> !blockedValues.contains(i));
+    }
+
+    public IntStream rowValues(Grid grid, int row)
+    {
+        return IntStream.of(grid.rows[row])
+                .filter(n -> n != structure.emptySquare);
+    }
+
+    public IntStream colValues(Grid grid, int col)
+    {
+        return Stream.of(grid.rows)
+                .mapToInt(r -> r[col])
+                .filter(n -> n != structure.emptySquare);
+    }
+
+    public IntStream boxValues(Grid grid, Box box)
+    {
+        return IntStream.rangeClosed(box.topLeft.row, box.bottomRight.row)
+                .flatMap(r -> IntStream.rangeClosed(box.topLeft.col, box.bottomRight.col)
+                        .map(c -> grid.value(r, c)))
+                .filter(n -> n != structure.emptySquare);
+    }
+
+    public Stream<Square> emptySquares(Grid grid)
+    {
+        return IntStream.range(0, grid.rows.length)
+                .boxed()
+                .flatMap(row -> IntStream.range(0, grid.row(row).length)
+                        .filter(col -> grid.value(row, col) == structure.emptySquare)
+                        .mapToObj(col -> new Square(row, col)));
     }
 
     public static class Grid
     {
+        public static Grid with(int... row)
+        {
+            return new Grid(new int[][] {}).and(row);
+        }
+
         private final int[][] rows;
-        private final Structure structure;
-        
-        private Grid(int[][] rows, Structure structure)
+        private Grid(int[][] rows)
         {
             this.rows = rows;
-            this.structure = structure;
         }
 
         public Grid and(int... row)
         {
             return new Grid(Stream.concat(Stream.of(rows), Stream.generate(() -> row)
                     .limit(1))
-                    .toArray(int[][]::new), structure);
+                    .toArray(int[][]::new));
         }
 
         public int[] row(int rowIndex)
@@ -118,50 +158,7 @@ public class Solver
             var newGrid = Stream.of(rows)
                     .toArray(int[][]::new);
             newGrid[square.row] = newRow;
-            return new Grid(newGrid, structure);
-        }
-
-        public IntStream allowedValues(Square square)
-        {
-            var blockedValues = Stream
-                    .of(rowValues(square.row), colValues(square.col),
-                            boxValues(structure.boxContaining(square)))
-                    .reduce(IntStream::concat)
-                    .get()
-                    .boxed()
-                    .collect(Collectors.toSet());
-            return IntStream.of(structure.permittedValues)
-                    .filter(i -> !blockedValues.contains(i));
-        }
-
-        public IntStream rowValues(int row)
-        {
-            return IntStream.of(rows[row])
-                    .filter(n -> n != structure.emptySquare);
-        }
-
-        public IntStream colValues(int col)
-        {
-            return Stream.of(rows)
-                    .mapToInt(r -> r[col])
-                    .filter(n -> n != structure.emptySquare);
-        }
-
-        public IntStream boxValues(Box box)
-        {
-            return IntStream.rangeClosed(box.topLeft.row, box.bottomRight.row)
-                    .flatMap(r -> IntStream.rangeClosed(box.topLeft.col, box.bottomRight.col)
-                            .map(c -> value(r, c)))
-                    .filter(n -> n != structure.emptySquare);
-        }
-
-        public Stream<Square> emptySquares()
-        {
-            return IntStream.range(0, rows.length)
-                    .boxed()
-                    .flatMap(row -> IntStream.range(0, row(row).length)
-                            .filter(col -> value(row, col) == structure.emptySquare)
-                            .mapToObj(col -> new Square(row, col)));
+            return new Grid(newGrid);
         }
 
         @Override

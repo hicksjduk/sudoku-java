@@ -20,7 +20,7 @@ class SolverTest
     void testPuzzleSolved()
     {
         var solver = Solver.defaultSolver;
-        var expected = solver.gridWith(8, 1, 2, 7, 5, 3, 6, 4, 9)
+        var expected = Grid.with(8, 1, 2, 7, 5, 3, 6, 4, 9)
                 .and(9, 4, 3, 6, 8, 2, 1, 7, 5)
                 .and(6, 7, 5, 4, 9, 1, 2, 8, 3)
                 .and(1, 5, 4, 2, 3, 7, 8, 9, 6)
