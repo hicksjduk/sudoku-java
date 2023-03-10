@@ -1,6 +1,5 @@
 package uk.org.thehickses.sudoku;
 
-import java.util.Arrays;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -15,24 +14,18 @@ public class Solver
 
     public static void main(String[] args)
     {
-        var puzzle = new int[][] { { 8, 0, 0, 0, 0, 0, 0, 0, 0 }, { 0, 0, 3, 6, 0, 0, 0, 0, 0 },
-                { 0, 7, 0, 0, 9, 0, 2, 0, 0 }, { 0, 5, 0, 0, 0, 7, 0, 0, 0 },
-                { 0, 0, 0, 0, 4, 5, 7, 0, 0 }, { 0, 0, 0, 1, 0, 0, 0, 3, 0 },
-                { 0, 0, 1, 0, 0, 0, 0, 6, 8 }, { 0, 0, 8, 5, 0, 0, 0, 1, 0 },
-                { 0, 9, 0, 0, 0, 0, 4, 0, 0 } };
+        var puzzle = Grid.with(8, 0, 0, 0, 0, 0, 0, 0, 0)
+                .and(0, 0, 3, 6, 0, 0, 0, 0, 0)
+                .and(0, 7, 0, 0, 9, 0, 2, 0, 0)
+                .and(0, 5, 0, 0, 0, 7, 0, 0, 0)
+                .and(0, 0, 0, 0, 4, 5, 7, 0, 0)
+                .and(0, 0, 0, 1, 0, 0, 0, 3, 0)
+                .and(0, 0, 1, 0, 0, 0, 0, 6, 8)
+                .and(0, 0, 8, 5, 0, 0, 0, 1, 0)
+                .and(0, 9, 0, 0, 0, 0, 4, 0, 0);
         new Solver().solve(puzzle)
                 .findFirst()
-                .map(Solver::toString)
                 .ifPresent(System.out::println);
-    }
-
-    static String toString(int[][] grid)
-    {
-        return Stream.of(grid)
-                .map(row -> IntStream.of(row)
-                        .mapToObj("%d"::formatted)
-                        .collect(Collectors.joining(" ")))
-                .collect(Collectors.joining("\n"));
     }
 
     private static Coords calcBoxSize()
@@ -59,73 +52,114 @@ public class Solver
                 .toArray(Box[]::new);
     }
 
-    Stream<int[][]> solve(int[][] grid)
+    Stream<Grid> solve(Grid grid)
     {
-        return emptySquares(grid).findFirst()
+        return grid.emptySquares()
+                .findFirst()
                 .map(square -> solveAt(grid, square))
                 .orElse(Stream.generate(() -> grid)
                         .limit(1));
     }
 
-    Stream<Coords> emptySquares(int[][] grid)
+    Stream<Grid> solveAt(Grid grid, Coords square)
     {
-        return IntStream.range(0, grid.length)
+        return grid.allowedValues(square)
                 .boxed()
-                .flatMap(row -> IntStream.range(0, grid[row].length)
-                        .filter(col -> grid[row][col] == emptySquare)
-                        .mapToObj(col -> new Coords(row, col)));
+                .flatMap(i -> solve(grid.setValueAt(square, i)));
     }
 
-    Stream<int[][]> solveAt(int[][] grid, Coords square)
+    record Grid(int[][] rows)
     {
-        return allowedValues(grid, square).boxed()
-                .flatMap(i -> solve(setValueAt(grid, square, i)));
-    }
+        static Grid with(int... row)
+        {
+            return new Grid(new int[][] {}).and(row);
+        }
 
-    int[][] setValueAt(int[][] grid, Coords square, int value)
-    {
-        var newRow = IntStream.of(grid[square.row])
-                .toArray();
-        newRow[square.col] = value;
-        var answer = Stream.of(grid)
-                .toArray(int[][]::new);
-        answer[square.row] = newRow;
-        return answer;
-    }
+        Grid and(int... row)
+        {
+            return new Grid(Stream.concat(Stream.of(rows), Stream.generate(() -> row)
+                    .limit(1))
+                    .toArray(int[][]::new));
+        }
 
-    IntStream allowedValues(int[][] grid, Coords square)
-    {
-        var blockedValues = Stream
-                .of(rowValues(grid, square.row), colValues(grid, square.col),
-                        boxValues(grid, square))
-                .reduce(IntStream::concat)
-                .get()
-                .boxed()
-                .collect(Collectors.toSet());
-        return IntStream.of(permittedValues)
-                .filter(i -> !blockedValues.contains(i));
-    }
+        int[] row(int rowIndex)
+        {
+            return rows[rowIndex];
+        }
 
-    IntStream rowValues(int[][] grid, int row)
-    {
-        return IntStream.of(grid[row])
-                .filter(n -> n != emptySquare);
-    }
+        int value(int rowIndex, int colIndex)
+        {
+            return row(rowIndex)[colIndex];
+        }
 
-    IntStream colValues(int[][] grid, int col)
-    {
-        return Stream.of(grid)
-                .mapToInt(r -> r[col])
-                .filter(n -> n != emptySquare);
-    }
+        int value(Coords square)
+        {
+            return value(square.row, square.col);
+        }
 
-    IntStream boxValues(int[][] grid, Coords square)
-    {
-        var box = square.containingBox();
-        return IntStream.rangeClosed(box.topLeft.row, box.bottomRight.row)
-                .flatMap(r -> IntStream.rangeClosed(box.topLeft.col, box.bottomRight.col)
-                        .map(c -> grid[r][c]))
-                .filter(n -> n != emptySquare);
+        Grid setValueAt(Coords square, int value)
+        {
+            var newRow = IntStream.of(row(square.row))
+                    .toArray();
+            newRow[square.col] = value;
+            var newGrid = Stream.of(rows)
+                    .toArray(int[][]::new);
+            newGrid[square.row] = newRow;
+            return new Grid(newGrid);
+        }
+
+        IntStream allowedValues(Coords square)
+        {
+            var blockedValues = Stream
+                    .of(rowValues(square.row), colValues(square.col), boxValues(square))
+                    .reduce(IntStream::concat)
+                    .get()
+                    .boxed()
+                    .collect(Collectors.toSet());
+            return IntStream.of(permittedValues)
+                    .filter(i -> !blockedValues.contains(i));
+        }
+
+        IntStream rowValues(int row)
+        {
+            return IntStream.of(rows[row])
+                    .filter(n -> n != emptySquare);
+        }
+
+        IntStream colValues(int col)
+        {
+            return Stream.of(rows)
+                    .mapToInt(r -> r[col])
+                    .filter(n -> n != emptySquare);
+        }
+
+        IntStream boxValues(Coords square)
+        {
+            var box = square.containingBox();
+            return IntStream.rangeClosed(box.topLeft.row, box.bottomRight.row)
+                    .flatMap(r -> IntStream.rangeClosed(box.topLeft.col, box.bottomRight.col)
+                            .map(c -> value(r, c)))
+                    .filter(n -> n != emptySquare);
+        }
+
+        Stream<Coords> emptySquares()
+        {
+            return IntStream.range(0, rows.length)
+                    .boxed()
+                    .flatMap(row -> IntStream.range(0, row(row).length)
+                            .filter(col -> value(row, col) == emptySquare)
+                            .mapToObj(col -> new Coords(row, col)));
+        }
+
+        @Override
+        public String toString()
+        {
+            return Stream.of(rows)
+                    .map(row -> IntStream.of(row)
+                            .mapToObj("%d"::formatted)
+                            .collect(Collectors.joining(" ")))
+                    .collect(Collectors.joining("\n"));
+        }
     }
 
     record Coords(int row, int col)
