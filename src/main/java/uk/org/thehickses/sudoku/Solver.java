@@ -15,11 +15,11 @@ public class Solver
 
     public static void main(String[] args)
     {
-        var puzzle = new int[][] { new int[] { 8, 0, 0, 0, 0, 0, 0, 0, 0 },
-                new int[] { 0, 0, 3, 6, 0, 0, 0, 0, 0 }, new int[] { 0, 7, 0, 0, 9, 0, 2, 0, 0 },
-                new int[] { 0, 5, 0, 0, 0, 7, 0, 0, 0 }, new int[] { 0, 0, 0, 0, 4, 5, 7, 0, 0 },
-                new int[] { 0, 0, 0, 1, 0, 0, 0, 3, 0 }, new int[] { 0, 0, 1, 0, 0, 0, 0, 6, 8 },
-                new int[] { 0, 0, 8, 5, 0, 0, 0, 1, 0 }, new int[] { 0, 9, 0, 0, 0, 0, 4, 0, 0 } };
+        var puzzle = new int[][] { { 8, 0, 0, 0, 0, 0, 0, 0, 0 }, { 0, 0, 3, 6, 0, 0, 0, 0, 0 },
+                { 0, 7, 0, 0, 9, 0, 2, 0, 0 }, { 0, 5, 0, 0, 0, 7, 0, 0, 0 },
+                { 0, 0, 0, 0, 4, 5, 7, 0, 0 }, { 0, 0, 0, 1, 0, 0, 0, 3, 0 },
+                { 0, 0, 1, 0, 0, 0, 0, 6, 8 }, { 0, 0, 8, 5, 0, 0, 0, 1, 0 },
+                { 0, 9, 0, 0, 0, 0, 4, 0, 0 } };
         new Solver().solve(puzzle)
                 .findFirst()
                 .map(Solver::toString)
@@ -29,7 +29,9 @@ public class Solver
     static String toString(int[][] grid)
     {
         return Stream.of(grid)
-                .map(Arrays::toString)
+                .map(row -> IntStream.of(row)
+                        .mapToObj("%d"::formatted)
+                        .collect(Collectors.joining(" ")))
                 .collect(Collectors.joining("\n"));
     }
 
