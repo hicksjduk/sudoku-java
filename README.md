@@ -5,17 +5,17 @@ This repo contains a simple solver for Sudoku puzzles, written in Java.
 To run the solver, run (the `Solver` class)[src/main/java/uk/org/thehickses/sudoku/Solver.java]. This solves the puzzle [which was 
 claimed in 2012 to be the hardest Sudoku ever devised](https://abcnews.go.com/blogs/headlines/2012/06/can-you-solve-the-hardest-ever-sudoku).
 
-The input puzzle is validated to ensure that:
+The input puzzle is not validated, but is assumed to fulfil the following criteria:
 
-* it is a 9x9 grid (a list of nine lists, each of which contains nine `Int`s).
+* it is a 9x9 grid (a two-dimensional array of `int`, with nine elements, each of 
+which contains nine elements).
 * every square is either empty (represented by the value 0) or contains one
 of the values 1 to 9 inclusive.
 * no row, column or box contains duplicate values in its non-empty
 squares.
 
 The solver prints an error message if 
-the puzzle is invalid or no solution can be found, otherwise the first solution found is returned.
-For examples of the various error conditions, see (the `SolverTest` class)[src/test/java/uk/org/thehickses/sudoku/SolverTest.java].
+no solution can be found, otherwise the first solution found is returned.
 
 The program uses a straightforward algorithm which tries every possibility to solve the puzzle.
 For any given grid:

@@ -10,21 +10,7 @@ public class Solver
             .toArray();
     private static final int emptySquare = 0;
     private static final int gridSize = permittedValues.length;
-    private static final Dimensions boxSize = calcBoxSize();
     private static final Box[] boxes = calcBoxes();
-
-    private static void validateStaticFields()
-    {
-        if (gridSize == 0)
-            throw new RuntimeException("Grid size is 0");
-        if (hasDuplicates(permittedValues))
-            throw new RuntimeException("Permitted values include duplicate(s)");
-        if (IntStream.of(permittedValues)
-                .anyMatch(i -> i == emptySquare))
-            throw new RuntimeException("Empty square value is also a permitted value");
-        if (boxSize.cols == gridSize)
-            throw new RuntimeException("Grid size is a prime number");
-    }
 
     static final Grid puzzle = Grid.with(8, 0, 0, 0, 0, 0, 0, 0, 0)
             .and(0, 0, 3, 6, 0, 0, 0, 0, 0)
@@ -38,25 +24,14 @@ public class Solver
 
     public static void main(String[] args)
     {
-        try
-        {
-            new Solver().solve(puzzle)
-                    .findFirst()
-                    .ifPresentOrElse(System.out::println, () ->
-                        {
-                            throw new RuntimeException("No solution found");
-                        });
-        }
-        catch (Throwable ex)
-        {
-            System.out.println(ex.getLocalizedMessage());
-        }
+        new Solver().solve(puzzle)
+                .findFirst()
+                .ifPresentOrElse(System.out::println,
+                        () -> System.out.println("No solution found"));
     }
 
     private static Dimensions calcBoxSize()
     {
-        if (gridSize == 0)
-            return new Dimensions(0, 0);
         var squareRoot = Math.sqrt(gridSize);
         var cols = IntStream.rangeClosed((int) Math.ceil(squareRoot), gridSize)
                 .filter(i -> gridSize % i == 0)
@@ -65,36 +40,24 @@ public class Solver
         return new Dimensions(gridSize / cols, cols);
     }
 
-    private static boolean hasDuplicates(IntStream values)
-    {
-        return hasDuplicates(values.toArray());
-    }
-
-    private static boolean hasDuplicates(int[] arr)
-    {
-        return arr.length != IntStream.of(arr)
-                .distinct()
-                .count();
-    }
-
     private static Box[] calcBoxes()
     {
-        var boxTopRows = IntStream.iterate(0, i -> i < gridSize, i -> i + boxSize.rows);
-        var boxLeftCols = IntStream.iterate(0, i -> i < gridSize, i -> i + boxSize.cols)
+        var boxTopRows = IntStream.iterate(0, i -> i < gridSize, i -> i + calcBoxSize().rows);
+        var boxLeftCols = IntStream.iterate(0, i -> i < gridSize, i -> i + calcBoxSize().cols)
                 .toArray();
         var boxTopLefts = boxTopRows.boxed()
                 .flatMap(row -> IntStream.of(boxLeftCols)
                         .mapToObj(col -> new Square(row, col)));
-        return boxTopLefts.map(
-                sq -> new Box(sq, new Square(sq.row + boxSize.rows - 1, sq.col + boxSize.cols - 1)))
+        return boxTopLefts
+                .map(sq -> new Box(sq,
+                        new Square(sq.row + calcBoxSize().rows - 1,
+                                sq.col + calcBoxSize().cols - 1)))
                 .toArray(Box[]::new);
     }
 
     public Stream<Grid> solve(Grid grid)
     {
-        validateStaticFields();
-        return grid.validate()
-                .emptySquares()
+        return grid.emptySquares()
                 .findFirst()
                 .map(square -> solveAt(grid, square))
                 .orElse(Stream.generate(() -> grid)
@@ -194,36 +157,6 @@ public class Solver
                             .mapToObj("%d"::formatted)
                             .collect(Collectors.joining(" ")))
                     .collect(Collectors.joining("\n"));
-        }
-
-        private Grid validate()
-        {
-            if (rows.length != gridSize)
-                throw new RuntimeException("Wrong number of rows");
-            if (Stream.of(rows)
-                    .anyMatch(r -> r.length != gridSize))
-                throw new RuntimeException("Wrong number of columns");
-            var allowedValues = IntStream
-                    .concat(IntStream.of(permittedValues), IntStream.of(emptySquare))
-                    .boxed()
-                    .toList();
-            if (!Stream.of(rows)
-                    .flatMapToInt(IntStream::of)
-                    .allMatch(allowedValues::contains))
-                throw new RuntimeException("Invalid cell value");
-            if (IntStream.range(0, gridSize)
-                    .mapToObj(this::rowValues)
-                    .anyMatch(Solver::hasDuplicates))
-                throw new RuntimeException("Row has duplicate value(s)");
-            if (IntStream.range(0, gridSize)
-                    .mapToObj(this::colValues)
-                    .anyMatch(Solver::hasDuplicates))
-                throw new RuntimeException("Column has duplicate value(s)");
-            if (Stream.of(boxes)
-                    .map(this::boxValues)
-                    .anyMatch(Solver::hasDuplicates))
-                throw new RuntimeException("Box has duplicate value(s)");
-            return this;
         }
     }
 
