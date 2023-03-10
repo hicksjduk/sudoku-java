@@ -2,7 +2,7 @@
 
 This repo contains a simple solver for Sudoku puzzles, written in Java.
 
-To run the solver, run (the `Solver` class) [src/main/java/uk/org/thehickses/sudoku/Solver.java]. This solves the puzzle [which was 
+To run the solver, run [the `Solver` class] {src/main/java/uk/org/thehickses/sudoku/Solver.java). This solves the puzzle [which was 
 claimed in 2012 to be the hardest Sudoku ever devised](https://abcnews.go.com/blogs/headlines/2012/06/can-you-solve-the-hardest-ever-sudoku).
 
 Alternatively, the `solve` method can be invoked on any puzzle, which is represented by an instance of the `Grid` class.
