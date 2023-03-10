@@ -6,11 +6,11 @@ import java.util.stream.Stream;
 
 public class Solver
 {
-    private static int[] permittedValues = IntStream.rangeClosed(1, 9)
+    private static final int[] permittedValues = IntStream.rangeClosed(1, 9)
             .toArray();
-    private static int emptySquare = 0;
-    private static int gridSize = permittedValues.length;
-    private static Box[] boxes = calcBoxes();
+    private static final int emptySquare = 0;
+    private static final int gridSize = permittedValues.length;
+    private static final Box[] boxes = calcBoxes();
 
     public static void main(String[] args)
     {
@@ -28,31 +28,31 @@ public class Solver
                 .ifPresent(System.out::println);
     }
 
-    private static Coords calcBoxSize()
+    private static Dimensions calcBoxSize()
     {
         var squareRoot = Math.sqrt(gridSize);
         var cols = IntStream.iterate((int) Math.ceil(squareRoot), i -> i + 1)
                 .filter(i -> gridSize % i == 0)
                 .findFirst()
                 .getAsInt();
-        return new Coords(gridSize / cols, cols);
+        return new Dimensions(gridSize / cols, cols);
     }
 
     private static Box[] calcBoxes()
     {
         var boxSize = calcBoxSize();
-        var boxTopRows = IntStream.iterate(0, i -> i < gridSize, i -> i + boxSize.row);
-        var boxLeftCols = IntStream.iterate(0, i -> i < gridSize, i -> i + boxSize.col)
+        var boxTopRows = IntStream.iterate(0, i -> i < gridSize, i -> i + boxSize.rows);
+        var boxLeftCols = IntStream.iterate(0, i -> i < gridSize, i -> i + boxSize.cols)
                 .toArray();
         var boxTopLefts = boxTopRows.boxed()
                 .flatMap(row -> IntStream.of(boxLeftCols)
-                        .mapToObj(col -> new Coords(row, col)));
+                        .mapToObj(col -> new Square(row, col)));
         return boxTopLefts.map(
-                sq -> new Box(sq, new Coords(sq.row + boxSize.row - 1, sq.col + boxSize.col - 1)))
+                sq -> new Box(sq, new Square(sq.row + boxSize.rows - 1, sq.col + boxSize.cols - 1)))
                 .toArray(Box[]::new);
     }
 
-    Stream<Grid> solve(Grid grid)
+    public Stream<Grid> solve(Grid grid)
     {
         return grid.emptySquares()
                 .findFirst()
@@ -61,43 +61,38 @@ public class Solver
                         .limit(1));
     }
 
-    Stream<Grid> solveAt(Grid grid, Coords square)
+    private Stream<Grid> solveAt(Grid grid, Square square)
     {
         return grid.allowedValues(square)
                 .boxed()
                 .flatMap(i -> solve(grid.setValueAt(square, i)));
     }
 
-    record Grid(int[][] rows)
+    private static record Grid(int[][] rows)
     {
-        static Grid with(int... row)
+        public static Grid with(int... row)
         {
             return new Grid(new int[][] {}).and(row);
         }
 
-        Grid and(int... row)
+        public Grid and(int... row)
         {
             return new Grid(Stream.concat(Stream.of(rows), Stream.generate(() -> row)
                     .limit(1))
                     .toArray(int[][]::new));
         }
 
-        int[] row(int rowIndex)
+        public int[] row(int rowIndex)
         {
             return rows[rowIndex];
         }
 
-        int value(int rowIndex, int colIndex)
+        public int value(int rowIndex, int colIndex)
         {
             return row(rowIndex)[colIndex];
         }
 
-        int value(Coords square)
-        {
-            return value(square.row, square.col);
-        }
-
-        Grid setValueAt(Coords square, int value)
+        public Grid setValueAt(Square square, int value)
         {
             var newRow = IntStream.of(row(square.row))
                     .toArray();
@@ -108,7 +103,7 @@ public class Solver
             return new Grid(newGrid);
         }
 
-        IntStream allowedValues(Coords square)
+        public IntStream allowedValues(Square square)
         {
             var blockedValues = Stream
                     .of(rowValues(square.row), colValues(square.col), boxValues(square))
@@ -120,20 +115,20 @@ public class Solver
                     .filter(i -> !blockedValues.contains(i));
         }
 
-        IntStream rowValues(int row)
+        public IntStream rowValues(int row)
         {
             return IntStream.of(rows[row])
                     .filter(n -> n != emptySquare);
         }
 
-        IntStream colValues(int col)
+        public IntStream colValues(int col)
         {
             return Stream.of(rows)
                     .mapToInt(r -> r[col])
                     .filter(n -> n != emptySquare);
         }
 
-        IntStream boxValues(Coords square)
+        public IntStream boxValues(Square square)
         {
             var box = square.containingBox();
             return IntStream.rangeClosed(box.topLeft.row, box.bottomRight.row)
@@ -142,13 +137,13 @@ public class Solver
                     .filter(n -> n != emptySquare);
         }
 
-        Stream<Coords> emptySquares()
+        public Stream<Square> emptySquares()
         {
             return IntStream.range(0, rows.length)
                     .boxed()
                     .flatMap(row -> IntStream.range(0, row(row).length)
                             .filter(col -> value(row, col) == emptySquare)
-                            .mapToObj(col -> new Coords(row, col)));
+                            .mapToObj(col -> new Square(row, col)));
         }
 
         @Override
@@ -162,9 +157,9 @@ public class Solver
         }
     }
 
-    record Coords(int row, int col)
+    private static record Square(int row, int col)
     {
-        Box containingBox()
+        public Box containingBox()
         {
             return Stream.of(boxes)
                     .filter(b -> b.contains(this))
@@ -173,12 +168,16 @@ public class Solver
         }
     }
 
-    record Box(Coords topLeft, Coords bottomRight)
+    private static record Box(Square topLeft, Square bottomRight)
     {
-        boolean contains(Coords square)
+        public boolean contains(Square square)
         {
             return topLeft.row <= square.row && bottomRight.row >= square.row
                     && topLeft.col <= square.col && bottomRight.col >= square.col;
         }
+    }
+
+    private static record Dimensions(int rows, int cols)
+    {
     }
 }
