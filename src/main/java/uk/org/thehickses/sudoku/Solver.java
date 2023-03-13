@@ -6,8 +6,6 @@ import java.util.stream.Stream;
 
 public class Solver
 {
-    public static final Solver defaultSolver = new Solver();
-
     public static final Grid puzzle = Grid.with(8, 0, 0, 0, 0, 0, 0, 0, 0)
             .and(0, 0, 3, 6, 0, 0, 0, 0, 0)
             .and(0, 7, 0, 0, 9, 0, 2, 0, 0)
@@ -20,7 +18,7 @@ public class Solver
 
     public static void main(String[] args)
     {
-        defaultSolver.solve(puzzle)
+        new Solver().solve(puzzle)
                 .findFirst()
                 .ifPresentOrElse(System.out::println,
                         () -> System.out.println("No solution found"));
@@ -64,16 +62,14 @@ public class Solver
 
     public Stream<Grid> solve(Grid grid)
     {
-        return emptySquares(grid)
-                .findFirst()
+        return emptySquares(grid).findFirst()
                 .map(square -> solveAt(grid, square))
                 .orElse(Stream.of(grid));
     }
 
     private Stream<Grid> solveAt(Grid grid, Square square)
     {
-        return allowedValues(grid, square)
-                .boxed()
+        return allowedValues(grid, square).boxed()
                 .flatMap(i -> solve(grid.setValueAt(square, i)));
     }
 
@@ -92,7 +88,7 @@ public class Solver
 
     public IntStream rowValues(Grid grid, int row)
     {
-        return IntStream.of(grid.rows[row])
+        return IntStream.of(grid.row(row))
                 .filter(n -> n != structure.emptySquare);
     }
 
@@ -128,6 +124,7 @@ public class Solver
         }
 
         private final int[][] rows;
+
         private Grid(int[][] rows)
         {
             this.rows = rows;
@@ -135,8 +132,7 @@ public class Solver
 
         public Grid and(int... row)
         {
-            return new Grid(Stream.concat(Stream.of(rows), Stream.generate(() -> row)
-                    .limit(1))
+            return new Grid(Stream.concat(Stream.of(rows), Stream.of(row))
                     .toArray(int[][]::new));
         }
 

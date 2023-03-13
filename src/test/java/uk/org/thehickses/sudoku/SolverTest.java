@@ -9,17 +9,17 @@ import uk.org.thehickses.sudoku.Solver.Square;
 
 class SolverTest
 {
+    private final Solver solver = new Solver();
+
     @Test
     void testUnsolvablePuzzle()
     {
-        assertThat(Solver.defaultSolver.solve(Solver.puzzle.setValueAt(new Square(8, 8), 3)))
-                .isEmpty();
+        assertThat(solver.solve(Solver.puzzle.setValueAt(new Square(8, 8), 3))).isEmpty();
     }
 
     @Test
     void testPuzzleSolved()
     {
-        var solver = Solver.defaultSolver;
         var expected = Grid.with(8, 1, 2, 7, 5, 3, 6, 4, 9)
                 .and(9, 4, 3, 6, 8, 2, 1, 7, 5)
                 .and(6, 7, 5, 4, 9, 1, 2, 8, 3)
