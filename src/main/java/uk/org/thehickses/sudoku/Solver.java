@@ -120,7 +120,7 @@ public class Solver
     {
         public static Grid with(int... row)
         {
-            return new Grid(new int[][] {}).and(row);
+            return new Grid(new int[][] { row });
         }
 
         private final int[][] rows;
