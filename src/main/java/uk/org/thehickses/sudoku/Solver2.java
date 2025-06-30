@@ -42,5 +42,15 @@ public class Solver2
         }
     }
 
-//    Dimension<T>
+    public static record Square(int row, int col)
+    {
+    }
+
+    public static record Dimension<T> (List<Square> emptySquares, List<List <T>> combinations)
+    {
+        public boolean contains(Square sq)
+        {
+            return emptySquares.contains(sq);
+        }
+    }
 }
