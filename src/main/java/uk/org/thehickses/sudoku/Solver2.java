@@ -6,6 +6,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import uk.org.thehickses.sudoku.Solver.Grid;
+
 public class Solver2
 {
     public static class Structure<T>
@@ -42,6 +44,58 @@ public class Solver2
         }
     }
 
+    public static class Grid
+    {
+        public static Grid with(int... row)
+        {
+            return new Grid(new int[][] { row });
+        }
+    
+        private final int[][] rows;
+    
+        private Grid(int[][] rows)
+        {
+            this.rows = rows;
+        }
+    
+        public Grid and(int... row)
+        {
+            return new Grid(Stream.concat(Stream.of(rows), Stream.of(row))
+                    .toArray(int[][]::new));
+        }
+    
+        public int[] row(int rowIndex)
+        {
+            return rows[rowIndex];
+        }
+    
+        public int value(int rowIndex, int colIndex)
+        {
+            return row(rowIndex)[colIndex];
+        }
+    
+        public Grid setValueAt(Square square, int value)
+        {
+            var newRow = IntStream.of(row(square.row))
+                    .toArray();
+            newRow[square.col] = value;
+            var newGrid = Stream.of(rows)
+                    .toArray(int[][]::new);
+            newGrid[square.row] = newRow;
+            return new Grid(newGrid);
+        }
+    
+        @Override
+        public String toString()
+        {
+            return Stream.of(rows)
+                    .map(row -> IntStream.of(row)
+                            .mapToObj("%d"::formatted)
+                            .collect(Collectors.joining(" ")))
+                    .collect(Collectors.joining("\n"));
+        }
+    }
+
     public static record Square(int row, int col)
     {
     }
@@ -52,5 +106,10 @@ public class Solver2
         {
             return emptySquares.contains(sq);
         }
+    }
+    
+    public static record Puzzle<T> (List<List<Dimension<T>>> dimensionsByType, Grid grid)
+    {
+        
     }
 }
